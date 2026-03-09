@@ -1,0 +1,1074 @@
+/* ═══════════════════════════════════════════════════
+   newspaper.css — 真实报纸排版样式
+   模拟中文报纸印刷品的视觉语言
+   ═══════════════════════════════════════════════════ */
+
+/* ── 字体引入 ── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+KuaiLe&family=Ma+Shan+Zheng&family=Zhi+Mang+Xing&display=swap');
+
+/* ── 全局容器 ── */
+.np-wrapper {
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* 模拟桌面/阅报架的背景 */
+    background: #8b8173;
+    background-image:
+        radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.25) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 10px 52px;
+}
+
+.np-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(17, 17, 17, 0.72);
+    color: #f3ede0;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 20px;
+    padding: 24px;
+}
+
+.np-status-banner {
+    position: fixed;
+    top: calc(12px + env(safe-area-inset-top, 0));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(17, 17, 17, 0.8);
+    color: #f3ede0;
+    font-family: 'Noto Sans SC', sans-serif;
+    border-radius: 6px;
+    pointer-events: none;
+    max-width: calc(100% - 24px);
+}
+
+.np-status-banner-sub {
+    opacity: 0.85;
+    font-size: 12px;
+}
+
+.np-status-banner-error {
+    border-color: rgba(216, 60, 60, 0.5);
+    background: rgba(82, 20, 20, 0.88);
+    color: #ffe7e7;
+}
+
+.np-submit-actions {
+    width: calc((100vh - 62px) * 10 / 7);
+    max-width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin: 6px 0 8px;
+}
+
+.np-submit-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 98px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: all 0.18s ease;
+}
+
+.np-submit-action-primary {
+    background: #b81c22;
+    color: #fff;
+}
+
+.np-submit-action-primary:hover {
+    background: #d4232a;
+}
+
+.np-submit-action-ad {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1f1a15;
+    border-color: #8d7f6a;
+}
+
+.np-submit-action-ad:hover {
+    background: #fff7e6;
+    border-color: #6f634f;
+}
+
+/* ── 双页对开容器 — 高度 = 屏幕高度 ── */
+.np-spread {
+    /* 高度固定为视口减去控制条和边距 */
+    height: calc(100vh - 62px);
+    /* 宽度由高度按 10:7 推算 */
+    width: calc((100vh - 62px) * 10 / 7);
+    max-width: 100%;
+    flex-shrink: 0;
+    display: flex;
+    gap: 3px;
+    position: relative;
+}
+
+/* 折缝阴影效果 */
+.np-spread::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(0, 0, 0, 0.05) 25%,
+            rgba(0, 0, 0, 0.1) 50%,
+            rgba(0, 0, 0, 0.05) 75%,
+            transparent 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ── 单页纸张 ── */
+.np-paper {
+    --np-header-height-front: 126px;
+    --np-header-height-inner: 52px;
+    --np-footer-height: 28px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* 纸张底色 — 微微泛黄 */
+    background-color: #f6f1e3;
+    /* 纸张纹理噪点 */
+    background-image:
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    /* 纸张阴影 — 模拟厚度（仅外侧） */
+    box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.08),
+        0 2px 4px rgba(0, 0, 0, 0.06),
+        0 4px 8px rgba(0, 0, 0, 0.04),
+        inset 0 0 60px rgba(255, 255, 255, 0.1),
+        inset 0 0 3px rgba(0, 0, 0, 0.04);
+    /* 纸张内边距 */
+    padding: 18px 22px 14px;
+    position: relative;
+}
+
+/* 空白页（奇数页时的占位） */
+.np-paper-empty {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    opacity: 1;
+}
+
+.np-empty-wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #b7aa95;
+    padding: 12px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.1)),
+        rgba(245, 236, 220, 0.65);
+}
+
+.np-empty-topline {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #a59784;
+    padding-bottom: 6px;
+    color: #5e5347;
+    font-size: 11px;
+    font-family: 'Noto Sans SC', sans-serif;
+}
+
+.np-empty-title {
+    margin: 10px 0 8px;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #201a14;
+}
+
+.np-empty-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    flex: 1;
+}
+
+.np-empty-card {
+    border: 1px solid #b7aa95;
+    background: rgba(255, 255, 255, 0.45);
+    padding: 10px;
+}
+
+.np-empty-card-title {
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #5e5347;
+    margin-bottom: 6px;
+}
+
+.np-empty-card-body {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f1a15;
+}
+
+.np-reject-body {
+    font-family: 'Noto Sans SC', monospace;
+    font-size: 12px;
+    color: #8b2b2b;
+    white-space: pre-wrap;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 8px;
+    border-left: 3px solid #8b2b2b;
+}
+
+.np-empty-footer {
+    margin-top: 10px;
+    border-top: 1px dashed #a59784;
+    padding-top: 8px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 12px;
+    color: #6d6052;
+}
+
+/* 纸张微微卷边效果 */
+.np-paper::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(to bottom,
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.03) 100%);
+}
+
+/* ════════════════════════ 报头 ════════════════════════ */
+
+.np-masthead {
+    text-align: center;
+    min-height: var(--np-header-height-front);
+    margin-bottom: 0;
+}
+
+.np-masthead-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #444;
+    letter-spacing: 0.1em;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #999;
+    margin-bottom: 4px;
+}
+
+.np-masthead-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 2px 0 2px;
+}
+
+.np-masthead-left-deco,
+.np-masthead-right-deco {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 9px;
+    color: #555;
+    font-family: 'Noto Sans SC', sans-serif;
+    letter-spacing: 0.08em;
+    min-width: 100px;
+}
+
+.np-masthead-left-deco {
+    text-align: right;
+}
+
+.np-masthead-right-deco {
+    text-align: left;
+}
+
+.np-masthead-slogan {
+    font-family: 'Noto Serif SC', serif;
+    font-style: italic;
+    font-size: 9px;
+    color: #333;
+}
+
+.np-masthead-name {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 900;
+    font-size: clamp(40px, 5.8vw, 58px);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: #111;
+    text-shadow:
+        0.5px 0.5px 0 rgba(0, 0, 0, 0.2),
+        -0.3px -0.3px 0 rgba(255, 255, 255, 0.1);
+}
+
+.np-masthead-name-red {
+    color: #b81c22;
+}
+
+.np-masthead-en {
+    font-family: 'Noto Serif SC', Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 0.4em;
+    color: #888;
+    text-transform: uppercase;
+    margin: 2px 0 4px;
+}
+
+.np-masthead-rules {
+    margin-bottom: 2px;
+}
+
+/* ── 装饰线 ── */
+.np-rule-thick {
+    height: 3px;
+    background: #111;
+}
+
+.np-rule-thin {
+    height: 1px;
+    background: #111;
+    margin-top: 2px;
+}
+
+.np-rule {
+    height: 1px;
+    background: #333;
+    opacity: 0.5;
+}
+
+/* ════════════════════════ 版面标签 ════════════════════════ */
+
+.np-section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #666;
+    letter-spacing: 0.05em;
+    min-height: 28px;
+    padding: 5px 0;
+    border-bottom: 1px solid #bbb;
+    margin-bottom: 8px;
+}
+
+.np-section-label-name {
+    font-weight: 700;
+    color: #111;
+    font-family: 'Noto Serif SC', serif;
+    font-size: 16px;
+}
+
+/* ════════════════════════ 非头版页眉 ════════════════════════ */
+
+.np-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: var(--np-header-height-inner);
+    font-size: 11px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #555;
+    border-bottom: 2px solid #111;
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.np-ph-center {
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 700;
+    font-size: 19px;
+    color: #111;
+}
+
+/* ════════════════════════ 栏目网格 ════════════════════════ */
+
+.np-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.np-content::-webkit-scrollbar {
+    display: none;
+}
+
+/* ── CSS Grid 金字塔式报纸排版 ──
+   headline 横跨全宽（6列），secondary 各占 3 列，brief 各占 2 列。
+   视觉层级：大标题 → 中标题 → 小简讯，像真正的报纸头版。 */
+.np-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px 14px;
+    align-items: start;
+}
+
+/* ── 文章单元格 ── */
+.np-cell {
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 8px;
+}
+
+/* 广告稿件：用双层方框与角标区隔正文 */
+.np-cell-ad {
+    position: relative;
+    border: 2px solid #2f2a24;
+    padding: 16px 10px 10px;
+    background: rgba(246, 241, 227, 0.9);
+    box-shadow: inset 0 0 0 1px #8f8476;
+}
+
+.np-ad-badge {
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    padding: 2px 8px;
+    border-left: 2px solid #2f2a24;
+    border-bottom: 2px solid #2f2a24;
+    background: #2f2a24;
+    color: #f3ecdc;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    line-height: 1.2;
+}
+
+.np-cell:last-child {
+    border-bottom: none;
+}
+
+/* 头条：横跨全宽 */
+.np-cell-headline {
+    grid-column: span 6;
+    border-bottom: 2px solid #111;
+    padding-bottom: 10px;
+    margin-bottom: 2px;
+}
+
+/* 次要文章：各占一半 */
+.np-cell-secondary {
+    grid-column: span 3;
+    border-bottom: 1px solid #999;
+}
+
+/* 简讯：三等分 */
+.np-cell-brief {
+    grid-column: span 2;
+}
+
+/* ════════════════════════ 文章样式 ════════════════════════ */
+
+.np-article {
+    margin-bottom: 4px;
+}
+
+/* 栏目标签 */
+.np-column-label {
+    font-size: 9px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #111;
+    border-bottom: 1.5px solid #111;
+    display: inline-block;
+    padding-bottom: 1px;
+    margin-bottom: 3px;
+    line-height: 1;
+}
+
+/* ── 标题层级 ── */
+.np-headline {
+    font-family: 'Noto Serif SC', 'SimSun', serif;
+    font-weight: 900;
+    color: #111;
+    line-height: 1.15;
+    margin-bottom: 4px;
+    /* 模拟铅字印刷的厚重感 */
+    text-shadow: 0.3px 0.3px 0 rgba(0, 0, 0, 0.08);
+}
+
+/* 头版头条 */
+.np-headline-1 {
+    font-size: clamp(22px, 2.9vw, 30px);
+    letter-spacing: -0.02em;
+    margin-bottom: 3px;
+}
+
+/* 次要新闻 */
+.np-headline-2 {
+    font-size: clamp(17px, 2.1vw, 21px);
+    margin-bottom: 2px;
+}
+
+/* 简讯标题 */
+.np-headline-3 {
+    font-size: clamp(14px, 1.6vw, 17px);
+    letter-spacing: 0;
+    margin-bottom: 2px;
+}
+
+/* ── 署名行 ── */
+.np-byline {
+    font-size: 10px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #666;
+    margin-bottom: 3px;
+    padding-bottom: 2px;
+    border-bottom: 1px dotted #ccc;
+}
+
+/* ── 正文 ── */
+.np-body {
+    font-family: 'Noto Serif SC', 'SimSun', 'STSong', serif;
+    font-size: 12.5px;
+    line-height: 1.72;
+    color: #222;
+    text-align: justify;
+    text-justify: inter-ideograph;
+    word-break: break-all;
+    overflow: visible;
+}
+
+/* 不再按重要性做正文裁切，保持全文可见 */
+
+.np-body p {
+    text-indent: 2em;
+    margin-bottom: 1px;
+}
+
+.np-body p:first-child {
+    text-indent: 0;
+}
+
+/* 重大文章分两栏排（CSS columns） */
+.np-body-cols {
+    column-count: 2;
+    column-gap: 14px;
+    column-rule: 1px solid #bbb;
+}
+
+/* ── 首字下沉 — 仅在分栏正文中 ── */
+.np-body-cols p:first-child::first-letter {
+    font-size: 2.6em;
+    font-weight: 900;
+    float: left;
+    line-height: 0.85;
+    margin-right: 3px;
+    margin-top: 2px;
+    color: #111;
+}
+
+/* ════════════════════════ 信息框 ════════════════════════ */
+
+.np-box {
+    border: 1.5px solid #333;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.np-box-title {
+    font-size: 12px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    margin-bottom: 5px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid #888;
+    color: #111;
+}
+
+.np-box-content {
+    font-size: 12.5px;
+    font-family: 'Noto Serif SC', serif;
+    line-height: 1.65;
+    color: #333;
+    white-space: pre-line;
+}
+
+/* ════════════════════════ 引言 ════════════════════════ */
+
+.np-quote {
+    border-left: 3px solid #222;
+    padding: 6px 0 6px 12px;
+    background: transparent;
+}
+
+.np-quote-text {
+    font-size: 13.5px;
+    font-family: 'Noto Serif SC', serif;
+    font-style: italic;
+    color: #222;
+    line-height: 1.7;
+}
+
+.np-quote-author {
+    font-size: 10px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #777;
+    margin-top: 4px;
+}
+
+/* ════════════════════════ 广告 ════════════════════════ */
+
+.np-ad {
+    border: 2px solid #333;
+    padding: 2px;
+}
+
+.np-ad-inner {
+    border: 1px solid #333;
+    padding: 10px;
+    text-align: center;
+}
+
+.np-ad-label {
+    display: block;
+    font-size: 10px;
+    font-family: 'Noto Sans SC', sans-serif;
+    letter-spacing: 0.4em;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 6px;
+}
+
+.np-ad-content p {
+    font-size: 13px;
+    font-family: 'Noto Serif SC', serif;
+    color: #333;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.np-ad-small {
+    font-size: 10px !important;
+    color: #777 !important;
+}
+
+/* ════════════════════════ 版脚 ════════════════════════ */
+
+.np-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex: 0 0 var(--np-footer-height);
+    min-height: var(--np-footer-height);
+    font-size: 9.5px;
+    font-family: 'Noto Sans SC', sans-serif;
+    color: #999;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 2px solid #111;
+}
+
+/* ════════════════════════ 浮动控制条 ════════════════════════ */
+
+.np-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-height: 42px;
+    height: auto;
+    padding: 6px 10px;
+    background: #1a1a1a;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-family: 'Noto Sans SC', sans-serif;
+    font-size: 12px;
+    z-index: 9999;
+    border-top: 1px solid #444;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.np-ctrl-back {
+    color: #999;
+    text-decoration: none;
+    font-size: 11px;
+    transition: color 0.2s;
+}
+
+.np-ctrl-back:hover {
+    color: white;
+}
+
+.np-ctrl-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.np-ctrl-archive {
+    padding: 2px 8px;
+    border: 1px dashed #555;
+    border-radius: 4px;
+    gap: 6px;
+}
+
+.np-ctrl-date {
+    background: #0f0f0f;
+    color: #ddd;
+    border: 1px solid #555;
+    border-radius: 3px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: inherit;
+    min-width: 138px;
+}
+
+.np-ctrl-date::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+    cursor: pointer;
+}
+
+.np-ctrl-btn {
+    background: transparent;
+    border: 1px solid #555;
+    color: #aaa;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.np-ctrl-btn:hover:not(:disabled) {
+    background: #333;
+    color: white;
+    border-color: #777;
+}
+
+.np-ctrl-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.np-ctrl-label {
+    color: #eee;
+    font-weight: 700;
+    font-size: 12px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.np-ctrl-page {
+    background: transparent;
+    border: 1px solid #555;
+    color: #aaa;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+
+.np-ctrl-page:hover {
+    background: #333;
+    color: white;
+}
+
+.np-ctrl-page-active {
+    background: white !important;
+    color: #111 !important;
+    font-weight: 700;
+    border-color: white !important;
+}
+
+/* ════════════════════════ 响应式 ════════════════════════ */
+
+@media (max-width: 1100px) {
+    .np-paper {
+        padding: 14px 16px 12px;
+    }
+
+    .np-masthead-name {
+        font-size: 48px;
+    }
+
+    .np-masthead-name-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .np-masthead-left-deco,
+    .np-masthead-right-deco {
+        text-align: center;
+        min-width: auto;
+    }
+}
+
+@media (max-width: 800px) {
+    .np-wrapper {
+        justify-content: flex-start;
+        padding: 8px 8px calc(70px + env(safe-area-inset-bottom, 0));
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .np-submit-actions {
+        width: 100%;
+        justify-content: center;
+        margin: 4px 0 10px;
+        flex-shrink: 0;
+    }
+
+    .np-spread {
+        width: 100%;
+        max-width: 100%;
+        height: auto;
+        min-height: 0;
+        aspect-ratio: unset;
+        flex-direction: column;
+        gap: 12px;
+        flex-shrink: 0;
+    }
+
+    .np-spread::after {
+        display: none;
+    }
+
+    .np-paper {
+        flex: 0 0 auto;
+        aspect-ratio: 3 / 4;
+        min-height: 280px;
+        padding: 12px 14px 10px;
+        width: 100%;
+    }
+
+    .np-content {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .np-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px 10px;
+    }
+
+    .np-cell-headline {
+        grid-column: span 2;
+    }
+
+    .np-cell-secondary {
+        grid-column: span 2;
+    }
+
+    .np-cell-brief {
+        grid-column: span 1;
+    }
+
+    .np-body-cols {
+        column-count: 1;
+    }
+
+    .np-masthead-name {
+        font-size: clamp(28px, 8vw, 40px);
+    }
+
+    .np-masthead-top {
+        font-size: 8px;
+    }
+
+    .np-masthead-en {
+        font-size: 9px;
+        letter-spacing: 0.2em;
+    }
+
+    .np-section-label-name {
+        font-size: 14px;
+    }
+
+    .np-headline-1 {
+        font-size: clamp(16px, 4vw, 22px);
+    }
+
+    .np-headline-2 {
+        font-size: clamp(14px, 3.5vw, 18px);
+    }
+
+    .np-headline-3 {
+        font-size: 13px;
+    }
+
+    .np-body {
+        font-size: 12px;
+    }
+
+    .np-footer {
+        font-size: 8px;
+    }
+}
+
+@media (max-width: 600px) {
+    .np-wrapper {
+        padding: 6px 6px calc(100px + env(safe-area-inset-bottom, 0));
+    }
+
+    .np-submit-actions {
+        flex-direction: column;
+        gap: 8px;
+        margin: 6px 0 10px;
+    }
+
+    .np-submit-action {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .np-spread {
+        gap: 10px;
+    }
+
+    .np-paper {
+        padding: 10px 12px 8px;
+        min-height: 260px;
+    }
+
+    .np-grid {
+        grid-template-columns: 1fr;
+        gap: 6px 0;
+    }
+
+    .np-cell-headline,
+    .np-cell-secondary,
+    .np-cell-brief {
+        grid-column: span 1;
+    }
+
+    .np-masthead-name-row {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .np-masthead-left-deco,
+    .np-masthead-right-deco {
+        min-width: 0;
+        font-size: 8px;
+    }
+
+    .np-masthead-name {
+        font-size: clamp(24px, 7vw, 32px);
+    }
+
+    .np-controls {
+        gap: 6px 10px;
+        font-size: 10px;
+        justify-content: flex-start;
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0));
+        min-height: 48px;
+    }
+
+    .np-ctrl-back {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .np-ctrl-btn {
+        min-height: 40px;
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    .np-ctrl-date {
+        min-width: 120px;
+        min-height: 40px;
+    }
+
+    .np-ctrl-archive {
+        order: 10;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .np-ctrl-label {
+        font-size: 10px;
+        min-width: 48px;
+    }
+
+    .np-empty-title {
+        font-size: 18px;
+    }
+
+    .np-empty-card-body {
+        font-size: 13px;
+    }
+}
+
+/* 超小屏（如 375px 及以下） */
+@media (max-width: 400px) {
+    .np-masthead-name {
+        font-size: 22px;
+    }
+
+    .np-masthead-top span:nth-child(n+2) {
+        display: none;
+    }
+
+    .np-masthead-top span:first-child {
+        margin: 0 auto;
+    }
+}
+
+/* ════════════════════════ 打印支持 ════════════════════════ */
+
+@media print {
+    .np-wrapper {
+        background: white;
+        padding: 0;
+    }
+
+    .np-paper {
+        box-shadow: none;
+        max-width: 100%;
+    }
+
+    .np-controls {
+        display: none;
+    }
+}

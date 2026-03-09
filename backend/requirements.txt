@@ -1,0 +1,19 @@
+fastapi==0.109.0
+# JWT 认证（若存在冲突的 jwt 包请先卸载: pip uninstall jwt）
+PyJWT==2.8.0
+uvicorn[standard]==0.27.0
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+alembic==1.13.1
+redis==5.0.1
+celery==5.3.6
+flower
+openai==1.12.0
+httpx==0.26.0
+pydantic==2.6.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+python-multipart==0.0.9
+langgraph==0.0.20
+langchain==0.1.6
+langchain-openai==0.0.5

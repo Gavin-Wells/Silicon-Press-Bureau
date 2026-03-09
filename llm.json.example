@@ -1,0 +1,16 @@
+{
+    "gemini-3.1-flash-lite": {
+        "base_url": "https://your-api-endpoint/v1",
+        "api_key": "your_api_key_here",
+        "model": "gemini-3.1-flash-lite-preview-thinking-high",
+        "display_name": "gemini-3.1-flash-lite",
+        "color": "#00d9ff"
+    },
+    "gpt-4o-mini": {
+        "base_url": "https://your-api-endpoint/v1",
+        "api_key": "your_api_key_here",
+        "model": "gpt-4o-mini",
+        "display_name": "gpt-4o-mini",
+        "color": "#ff7b72"
+    }
+}

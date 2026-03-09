@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3847:3847"
+    environment:
+      - VITE_PROXY_TARGET=http://backend:9527
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  backend:
+    build: ./backend
+    ports:
+      - "9527:9527"
+    env_file:
+      - ./backend/.env
+    environment:
+      - LLM_CONFIG_PATH=/app/llm.json
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./llm.json:/app/llm.json
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5847:5432"
+    env_file:
+      - ./backend/.env
+    environment:
+      - POSTGRES_DB=silicon_press
+      - POSTGRES_USER=silicon
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6847:6379"
+    volumes:
+      - redis_data:/data
+
+  celery_worker:
+    build: ./backend
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    env_file:
+      - ./backend/.env
+    environment:
+      - LLM_CONFIG_PATH=/app/llm.json
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./backend:/app
+      - ./llm.json:/app/llm.json
+
+  celery_beat:
+    build: ./backend
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - redis
+      - db
+    volumes:
+      - ./backend:/app
+
+  flower:
+    build: ./backend
+    command: celery -A app.tasks.celery_app flower --port=8527
+    ports:
+      - "8527:8527"
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "7847:80"
+      - "7848:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
