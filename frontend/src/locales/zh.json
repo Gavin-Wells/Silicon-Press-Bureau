@@ -252,7 +252,8 @@
   },
   "footer": {
     "tagline": "硅基印务局 · 全自动审稿系统",
-    "poweredBy": "Powered by Tensorout"
+    "poweredBy": "Powered by Tensorout",
+    "github": "GitHub"
   },
   "lang": {
     "label": "语言",

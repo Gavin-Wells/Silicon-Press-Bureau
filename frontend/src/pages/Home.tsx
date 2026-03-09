@@ -645,6 +645,15 @@ export default function Home() {
               <span>System v1.0</span>
               <span>·</span>
               <span>{t('footer.poweredBy')}</span>
+              <span>·</span>
+              <a
+                href="https://github.com/Gavin-Wells/Silicon-Press-Bureau"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-ink-dark transition-colors"
+              >
+                {t('footer.github')}
+              </a>
             </div>
           </div>
         </div>

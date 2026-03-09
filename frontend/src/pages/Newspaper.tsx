@@ -367,7 +367,7 @@ export default function Newspaper() {
         {/* ──── 版脚 ──── */}
         <div className="np-footer">
           <span>硅基印务局 出品</span>
-          <span>Powered by Tensorout · © 2026</span>
+          <span>Powered by Tensorout · © 2026 · <a href="https://github.com/Gavin-Wells/Silicon-Press-Bureau" target="_blank" rel="noopener noreferrer" className="np-footer-link">GitHub</a></span>
           <span>第 {page.page_num} 版 / 共 {pages.length} 版</span>
         </div>
       </div>

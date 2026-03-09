@@ -699,6 +699,14 @@
     border-top: 2px solid #111;
 }
 
+.np-footer-link {
+    color: inherit;
+    text-decoration: underline;
+}
+.np-footer-link:hover {
+    color: #111;
+}
+
 /* ════════════════════════ 浮动控制条 ════════════════════════ */
 
 .np-controls {
