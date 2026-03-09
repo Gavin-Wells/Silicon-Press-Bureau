@@ -206,9 +206,9 @@ export default function SubmitForm() {
                       }`}
                   >
                     <div className="flex items-center space-x-3 mb-1">
-                      <div className="w-8 h-8 rounded flex items-center justify-center"
+                      <div className="w-8 h-8 rounded flex items-center justify-center shrink-0"
                         style={{ backgroundColor: theme.color }}>
-                        <span className="text-white font-bold text-xs">
+                        <span className="text-white font-bold text-xs leading-none">
                           {getNewspaperInitials(paper)}
                         </span>
                       </div>

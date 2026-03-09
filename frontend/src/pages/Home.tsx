@@ -471,11 +471,11 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
                       <button
                         type="button"
                         onClick={() => handleShareCard(item)}
-                        className="inline-flex items-center gap-1.5 px-2.5 h-7 min-w-[68px] shrink-0 whitespace-nowrap border rounded-full text-[11px] leading-none font-medium transition opacity-70 hover:opacity-100"
+                        className="order-2 sm:order-1 inline-flex items-center gap-1.5 px-2.5 h-7 min-w-[68px] shrink-0 whitespace-nowrap border rounded-full text-[11px] leading-none font-medium transition opacity-70 hover:opacity-100"
                         style={{
                           borderColor: `${item.theme.color}66`,
                           color: item.theme.color,
@@ -490,7 +490,7 @@ export default function Home() {
                         <span>{sharingSlug === item.paper.slug ? '...' : t('home.shareMini')}</span>
                       </button>
                       <span
-                        className="inline-flex items-center justify-center px-3 py-2 min-h-[30px] shrink-0 whitespace-nowrap text-[11px] leading-none font-semibold text-white"
+                        className="order-1 sm:order-2 inline-flex items-center justify-center px-3 py-2 min-h-[30px] shrink-0 whitespace-nowrap text-[11px] leading-none font-semibold text-white"
                         style={{ backgroundColor: item.theme.color }}
                       >
                         <span style={{ transform: 'translateY(-2px)' }}>{t('home.todayOpen')}</span>
