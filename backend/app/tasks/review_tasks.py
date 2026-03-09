@@ -23,7 +23,12 @@ from app.services.content_safety import check_submission_content_safety
 from app.services.newspaper_config import get_effective_newspaper_config
 from app.agents.llm_manager import LLMManager
 from app.agents.reviewer import ReviewerAgent, RejectorAgent
+from app.services.mail.poster import build_acceptance_poster_png
+import base64
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 EDITOR_PEN_NAMES = [
     "夜班校对",
@@ -292,15 +297,42 @@ def review_submission(self, submission_id: int):
         # 审稿通过后发送过稿通知（可选邮箱）
         notification_email = _get_notification_email(submission)
         if submission.status == "approved" and notification_email:
+            attachments = []
+            try:
+                poster_bytes = build_acceptance_poster_png(
+                    newspaper_name=newspaper.name,
+                    title=submission.title,
+                    content=submission.content,
+                    homepage_url=settings.SITE_HOME_URL,
+                )
+                attachments.append(
+                    {
+                        "filename": "acceptance-poster.png",
+                        "mime_type": "image/png",
+                        "content_base64": base64.b64encode(poster_bytes).decode("utf-8"),
+                    }
+                )
+            except Exception:
+                attachments = []
+                logger.exception("failed_to_generate_acceptance_poster", extra={"submission_id": submission.id})
+
             send_email_task.delay(
                 to_email=notification_email,
                 subject=f"过稿通知：{submission.title}",
                 body_text=(
                     f"您好，{submission.pen_name}：\n\n"
                     f"恭喜！您的投稿《{submission.title}》已通过审核。\n"
-                    "我们会在后续排版流程中安排刊发。\n\n"
+                    "我们会在后续排版流程中安排刊发。\n"
+                    "已为你附上一张中稿海报，欢迎分享。\n\n"
                     "感谢投稿，期待您的更多作品。"
                 ),
+                body_html=(
+                    f"<p>您好，{submission.pen_name}：</p>"
+                    f"<p>恭喜！您的投稿《{submission.title}》已通过审核。</p>"
+                    "<p>我们会在后续排版流程中安排刊发。已为你附上一张中稿海报，欢迎分享。</p>"
+                    "<p>感谢投稿，期待您的更多作品。</p>"
+                ),
+                attachments=attachments,
             )
 
         return {

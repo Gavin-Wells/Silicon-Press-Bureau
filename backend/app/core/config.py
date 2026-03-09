@@ -71,6 +71,8 @@ class Settings(BaseSettings):
     MAIL_FROM_NAME: str = "Silicon Press Bureau"
     MAIL_TIMEOUT_SECONDS: int = 10
 
+    SITE_HOME_URL: str = "http://localhost:3847"
+
     MAIL_USERNAME: str = ""
     MAIL_PASSWORD: str = ""
 

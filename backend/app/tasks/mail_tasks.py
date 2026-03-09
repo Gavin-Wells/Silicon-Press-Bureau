@@ -24,6 +24,7 @@ def send_email_task(
     body_text: str,
     body_html: str | None = None,
     reply_to: str | None = None,
+    attachments: list[dict] | None = None,
 ):
     defaults = build_outbound_defaults()
     email = OutboundEmail(
@@ -34,6 +35,7 @@ def send_email_task(
         reply_to=reply_to,
         from_email=defaults["from_email"],
         from_name=defaults["from_name"],
+        attachments=attachments or [],
     )
     service = get_mail_service()
 

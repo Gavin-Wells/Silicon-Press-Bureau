@@ -8,6 +8,7 @@
 
 /* ── 全局容器 ── */
 .np-wrapper {
+    --np-controls-height: 62px;
     min-height: 100vh;
     min-height: 100dvh;
     /* 模拟桌面/阅报架的背景 */
@@ -18,7 +19,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px 10px 52px;
+    padding: 10px 10px calc(var(--np-controls-height) + 10px);
 }
 
 .np-loading-overlay {
@@ -113,9 +114,9 @@
 /* ── 双页对开容器 — 高度 = 屏幕高度 ── */
 .np-spread {
     /* 高度固定为视口减去控制条和边距 */
-    height: calc(100vh - 62px);
+    height: calc(100dvh - var(--np-controls-height) - 20px);
     /* 宽度由高度按 10:7 推算 */
-    width: calc((100vh - 62px) * 10 / 7);
+    width: calc((100dvh - var(--np-controls-height) - 20px) * 10 / 7);
     max-width: 100%;
     flex-shrink: 0;
     display: flex;
@@ -748,6 +749,17 @@
     gap: 6px;
 }
 
+.np-ctrl-submit-actions {
+    gap: 8px;
+}
+
+.np-ctrl-submit-action {
+    min-width: 88px;
+    padding: 4px 10px;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+}
+
 .np-ctrl-archive {
     padding: 2px 8px;
     border: 1px dashed #555;
@@ -1032,6 +1044,19 @@
         order: 10;
         width: 100%;
         justify-content: center;
+    }
+
+    .np-ctrl-submit-actions {
+        order: -1;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .np-ctrl-submit-action {
+        min-height: 40px;
+        min-width: 120px;
+        padding: 8px 12px;
+        font-size: 12px;
     }
 
     .np-ctrl-label {

@@ -4,11 +4,12 @@ from app.services.mail.exceptions import (
     MailDeliveryError,
     MailError,
 )
-from app.services.mail.schemas import OutboundEmail
+from app.services.mail.schemas import OutboundEmail, EmailAttachment
 from app.services.mail.service import MailService
 
 __all__ = [
     "OutboundEmail",
+    "EmailAttachment",
     "MailService",
     "MailError",
     "MailConfigurationError",

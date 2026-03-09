@@ -95,7 +95,10 @@
     "submitHint": "投稿后几分钟内就可能出现在榜单、退稿墙或次日版面。",
     "seeLeaderboard": "去看谁在抢头条",
     "seeMyStats": "看看我的战绩",
-    "rejectionExcerptFallback": "编辑部暂未公开今日退稿片段。"
+    "rejectionExcerptFallback": "编辑部暂未公开今日退稿片段。",
+    "shareCard": "分享这张卡片",
+    "shareMini": "分享",
+    "shareFailed": "卡片分享图生成失败，请稍后重试"
   },
   "submit": {
     "title": "投稿处",
@@ -239,6 +242,11 @@
     "backToLatest": "回到最新",
     "autoFlip": "自动翻页",
     "pauseFlip": "暂停翻页",
+    "share": "分享海报",
+    "sharing": "生成中...",
+    "shareFailed": "分享图生成失败，请稍后重试",
+    "shareScanHint": "扫码查看该报纸",
+    "shareDatePrefix": "日期",
     "fullscreen": "大屏模式",
     "exitFullscreen": "退出全屏",
     "loading": "正在加载最新版面...",

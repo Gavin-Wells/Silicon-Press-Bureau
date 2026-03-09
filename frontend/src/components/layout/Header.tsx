@@ -63,13 +63,21 @@ function LanguageDropdown({
   };
 
   const isCompact = variant === 'compact';
-  const triggerLabel = value === 'zh' ? t('lang.zhShort') : t('lang.enShort');
+  const compactLabel = value === 'en' ? 'EN' : '中';
+  const triggerLabel = isCompact
+    ? compactLabel
+    : (value === 'zh' ? t('lang.zhShort') : t('lang.enShort'));
+  const triggerClass = isCompact
+    ? 'h-9 min-w-[64px] px-2 py-1.5 text-[11px] font-semibold tracking-[0.08em]'
+    : 'w-full min-h-[44px] px-4 py-3 text-sm font-semibold tracking-wide';
+  const panelClass = isCompact ? 'min-w-[4.75rem]' : 'w-full min-w-[11rem]';
+  const optionClass = isCompact ? 'px-3 py-2 text-xs' : 'px-3.5 py-3 text-sm';
 
   const dropdownPanel =
     open && panelRect ? (
       <div
         ref={panelRef}
-        className="lang-dropdown-panel fixed py-0.5 rounded-lg border-2 border-ink-dark bg-paper-white shadow-[4px_4px_0_#1a1a1a] z-[100] min-w-[7rem]"
+        className={`lang-dropdown-panel fixed py-0.5 rounded-lg border-2 border-ink-dark bg-paper-white shadow-[2px_2px_0_#1a1a1a] z-[100] ${panelClass}`}
         role="listbox"
         style={{
           top: panelRect.top,
@@ -84,9 +92,9 @@ function LanguageDropdown({
             role="option"
             aria-selected={value === lng}
             onClick={() => handleSelect(lng)}
-            className={`lang-dropdown-option w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 transition-colors border-b border-[#d4c9b5] last:border-b-0 ${
+            className={`lang-dropdown-option w-full text-left flex items-center justify-between gap-2 transition-colors border-b border-[#d4c9b5] last:border-b-0 ${optionClass} ${
               value === lng ? 'bg-ink-dark text-paper-cream font-semibold' : 'text-ink-dark hover:bg-paper-aged'
-            } ${isCompact ? 'text-xs' : 'text-sm'}`}
+            }`}
           >
             <span>{t(shortKey)}</span>
             {value === lng && (
@@ -105,16 +113,14 @@ function LanguageDropdown({
         ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={`lang-dropdown-trigger flex items-center justify-between gap-2 rounded-lg border-2 border-ink-dark bg-paper-aged/60 text-ink-dark shadow-[2px_2px_0_#1a1a1a] transition-colors hover:bg-paper-aged focus:outline-none focus:ring-2 focus:ring-ink-dark/30 ${
-          isCompact ? 'px-3 py-2 pr-8 text-xs font-semibold tracking-wide' : 'w-full px-4 py-3 pr-10 text-sm font-semibold tracking-wide'
-        }`}
+        className={`lang-dropdown-trigger relative flex items-center rounded-lg border-2 border-ink-dark bg-paper-aged/60 text-ink-dark shadow-[1px_1px_0_#1a1a1a] transition-all hover:bg-paper-aged hover:shadow-[2px_2px_0_#1a1a1a] active:translate-x-px active:translate-y-px active:shadow-[1px_1px_0_#1a1a1a] focus:outline-none focus:ring-2 focus:ring-ink-dark/30 ${isCompact ? 'justify-center' : 'justify-between gap-1.5'} ${triggerClass}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label={t('lang.label')}
       >
-        <span>{triggerLabel}</span>
+        <span className={isCompact ? 'block w-full text-center pr-4 leading-none whitespace-nowrap' : 'leading-none whitespace-nowrap'}>{triggerLabel}</span>
         <svg
-          className={`w-4 h-4 flex-shrink-0 text-ink-dark transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`${isCompact ? 'absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5' : 'w-4 h-4 flex-shrink-0'} text-ink-dark transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -141,6 +147,7 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const authUser = getAuthUser();
+  const isEnglish = i18n.language === 'en';
   const [menuOpen, setMenuOpen] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const navItems = navKeys.map((item) => ({ ...item, label: t(item.labelKey) }));
@@ -172,7 +179,7 @@ export default function Header() {
       <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={icon} />
       </svg>
-      <span>{label}</span>
+      <span className="whitespace-nowrap">{label}</span>
       {isActive && <span className="nav-link-active-dot" aria-hidden />}
     </>
   );
@@ -192,18 +199,20 @@ export default function Header() {
             />
             <div className="flex flex-col">
               <span className="text-base sm:text-lg font-bold text-ink-dark leading-tight">{t('common.siteName')}</span>
-              <span className="text-[10px] sm:text-xs text-[#9c8b75] font-mono tracking-wider hidden sm:block">{t('common.siteSubtitle')}</span>
+              <span className="text-[10px] sm:text-xs text-[#9c8b75] font-mono tracking-wider hidden lg:block">{t('common.siteSubtitle')}</span>
             </div>
           </Link>
 
           {/* 桌面端导航 */}
-          <nav className="hidden md:flex items-center space-x-1 min-w-0 flex-1 justify-end">
+          <nav className={`hidden xl:flex items-center min-w-0 flex-1 justify-end ${isEnglish ? 'space-x-0' : 'space-x-1'}`}>
             {navItems.map(({ to, label, icon }) => (
               <Link
                 key={to}
                 to={to}
                 className={`nav-link flex items-center space-x-2 ${
                   location.pathname === to ? 'nav-link-active' : ''
+                } ${
+                  isEnglish ? 'px-2 text-[13px] space-x-1.5' : ''
                 }`}
               >
                 <NavLinkContent label={label} icon={icon} isActive={location.pathname === to} />
@@ -219,6 +228,8 @@ export default function Header() {
                 to="/login"
                 className={`nav-link flex items-center space-x-2 ${
                   location.pathname === '/login' ? 'nav-link-active' : ''
+                } ${
+                  isEnglish ? 'px-2 text-[13px] whitespace-nowrap' : ''
                 }`}
               >
                 <span>{t('nav.login')}</span>
@@ -236,7 +247,7 @@ export default function Header() {
           {/* 手机端：汉堡按钮 */}
           <button
             type="button"
-            className="md:hidden flex flex-col justify-center items-center w-12 h-12 min-w-[44px] min-h-[44px] -mr-2 rounded-lg text-ink-dark hover:bg-ink-dark/10 active:bg-ink-dark/15 transition-colors"
+            className="xl:hidden relative flex justify-center items-center w-12 h-12 min-w-[44px] min-h-[44px] -mr-2 rounded-lg text-ink-dark hover:bg-ink-dark/10 active:bg-ink-dark/15 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               setMenuOpen((o) => !o);
@@ -244,16 +255,28 @@ export default function Header() {
             aria-expanded={menuOpen}
             aria-label={menuOpen ? t('nav.menuClose') : t('nav.menuOpen')}
           >
-            <span className={`block w-6 h-0.5 bg-ink-dark rounded-full transition-all ${menuOpen ? 'rotate-45 translate-y-1' : ''}`} />
-            <span className={`block w-6 h-0.5 bg-ink-dark rounded-full my-1.5 transition-all ${menuOpen ? 'opacity-0' : ''}`} />
-            <span className={`block w-6 h-0.5 bg-ink-dark rounded-full transition-all ${menuOpen ? '-rotate-45 -translate-y-1' : ''}`} />
+            <span
+              className={`absolute left-1/2 w-6 h-0.5 -translate-x-1/2 bg-ink-dark rounded-full transition-all duration-200 ${
+                menuOpen ? 'rotate-45' : '-translate-y-2'
+              }`}
+            />
+            <span
+              className={`absolute left-1/2 w-6 h-0.5 -translate-x-1/2 bg-ink-dark rounded-full transition-opacity duration-150 ${
+                menuOpen ? 'opacity-0' : 'opacity-100'
+              }`}
+            />
+            <span
+              className={`absolute left-1/2 w-6 h-0.5 -translate-x-1/2 bg-ink-dark rounded-full transition-all duration-200 ${
+                menuOpen ? '-rotate-45' : 'translate-y-2'
+              }`}
+            />
           </button>
         </div>
       </div>
 
       {/* 手机端：下拉菜单面板 */}
       <div
-        className={`md:hidden overflow-hidden transition-[max-height] duration-300 ease-out border-t border-ink-dark/20 ${
+        className={`xl:hidden overflow-hidden transition-[max-height] duration-300 ease-out border-t border-ink-dark/20 ${
           menuOpen ? 'max-h-[80vh]' : 'max-h-0'
         }`}
       >

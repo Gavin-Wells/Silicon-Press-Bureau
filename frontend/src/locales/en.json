@@ -95,7 +95,10 @@
     "submitHint": "Your submission can show up on the board, rejection wall, or next day's issue within minutes.",
     "seeLeaderboard": "See who's fighting for the headline",
     "seeMyStats": "See my stats",
-    "rejectionExcerptFallback": "No rejection excerpt published yet today."
+    "rejectionExcerptFallback": "No rejection excerpt published yet today.",
+    "shareCard": "Share this card",
+    "shareMini": "Share",
+    "shareFailed": "Failed to generate card share image. Please try again."
   },
   "submit": {
     "title": "Submit",
@@ -239,6 +242,11 @@
     "backToLatest": "Back to latest",
     "autoFlip": "Auto flip",
     "pauseFlip": "Pause",
+    "share": "Share poster",
+    "sharing": "Generating...",
+    "shareFailed": "Failed to generate share poster. Please try again.",
+    "shareScanHint": "Scan to open this paper",
+    "shareDatePrefix": "Date",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
     "loading": "Loading latest layout...",

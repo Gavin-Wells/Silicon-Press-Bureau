@@ -1,5 +1,6 @@
 import smtplib
 import ssl
+import base64
 from email.message import EmailMessage
 
 from app.services.mail.exceptions import MailConfigurationError, MailDeliveryError
@@ -75,4 +76,16 @@ class SmtpMailProvider(MailProvider):
         message.set_content(email.body_text)
         if email.body_html:
             message.add_alternative(email.body_html, subtype="html")
+
+        for attachment in email.attachments:
+            maintype, subtype = "application", "octet-stream"
+            if "/" in attachment.mime_type:
+                maintype, subtype = attachment.mime_type.split("/", 1)
+            payload = base64.b64decode(attachment.content_base64)
+            message.add_attachment(
+                payload,
+                maintype=maintype,
+                subtype=subtype,
+                filename=attachment.filename,
+            )
         return message

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import Header from '../components/layout/Header';
@@ -21,6 +21,7 @@ import {
   type SectionInfo,
 } from '../services/api';
 import type { Rejection } from '../types';
+import { downloadShareCard } from '../lib/shareCard';
 
 const VISITOR_BASE_COUNT = 6831;
 const FALLBACK_STATS: OverviewStatsResponse = {
@@ -125,6 +126,8 @@ export default function Home() {
   const [paperIssues, setPaperIssues] = useState<Record<string, LiveIssueResponse | null>>({});
   const [board, setBoard] = useState<DailyLeaderboardResponse | null>(null);
   const [featuredRejections, setFeaturedRejections] = useState<Rejection[]>([]);
+  const [sharingSlug, setSharingSlug] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLElement | null>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -280,6 +283,49 @@ export default function Home() {
     return cards;
   }, [showcasePapers, t]);
 
+  const handleShareCard = async (item: ShowcasePaper) => {
+    const sourceElement = cardRefs.current[item.paper.slug];
+    if (!sourceElement) return;
+
+    const issueDateForShare = paperIssues[item.paper.slug]?.issue_meta?.issue_date || new Date().toISOString().slice(0, 10);
+    const deepLink = `${window.location.origin}/newspaper/${item.paper.slug}`;
+
+    setSharingSlug(item.paper.slug);
+    let captureHost: HTMLDivElement | null = null;
+    try {
+      captureHost = document.createElement('div');
+      captureHost.style.position = 'fixed';
+      captureHost.style.left = '-10000px';
+      captureHost.style.top = '0';
+      captureHost.style.width = `${Math.max(sourceElement.offsetWidth, 760)}px`;
+      captureHost.style.pointerEvents = 'none';
+      captureHost.style.opacity = '1';
+
+      const captureElement = sourceElement.cloneNode(true) as HTMLElement;
+      captureElement.style.transform = 'none';
+      captureElement.style.width = '100%';
+      captureElement.style.boxShadow = 'none';
+      captureElement.style.margin = '0';
+
+      captureHost.appendChild(captureElement);
+      document.body.appendChild(captureHost);
+
+      await downloadShareCard({
+        element: captureElement,
+        deepLink,
+        filename: `${item.paper.slug}-${issueDateForShare}-share.png`,
+        qrCaption: t('newspaper.shareScanHint'),
+        footerTitle: `${item.paper.name} · ${t('home.todayFront')}`,
+        footerMeta: 'Silicon Press Bureau',
+      });
+    } catch {
+      window.alert(t('home.shareFailed'));
+    } finally {
+      captureHost?.remove();
+      setSharingSlug(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-paper-cream w-full min-w-0 overflow-x-hidden">
       <Header />
@@ -389,6 +435,9 @@ export default function Home() {
               return (
                 <article
                   key={item.paper.slug}
+                  ref={(element) => {
+                    cardRefs.current[item.paper.slug] = element;
+                  }}
                   className={`paper-texture border-[3px] p-5 sm:p-6 shadow-[10px_10px_0_rgba(26,26,26,0.12)] ${
                     index === 0 ? 'lg:col-span-7' : 'lg:col-span-5'
                   }`}
@@ -405,9 +454,9 @@ export default function Home() {
                         style={{ backgroundColor: item.theme.color }}
                       >
                         {item.logoEmoji ? (
-                          <span style={{ fontSize: 26, lineHeight: 1 }}>{item.logoEmoji}</span>
+                          <span style={{ fontSize: 26, lineHeight: 1, transform: 'translateY(-2px)' }}>{item.logoEmoji}</span>
                         ) : (
-                          <span className="text-white text-sm font-bold font-mono">{item.initials}</span>
+                          <span className="text-white text-sm leading-none font-bold font-mono" style={{ transform: 'translateY(-2px)' }}>{item.initials}</span>
                         )}
                       </div>
                       <div>
@@ -422,12 +471,31 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
-                    <span
-                      className="px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-white"
-                      style={{ backgroundColor: item.theme.color }}
-                    >
-                      {t('home.todayOpen')}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleShareCard(item)}
+                        className="inline-flex items-center gap-1.5 px-2.5 h-7 min-w-[68px] shrink-0 whitespace-nowrap border rounded-full text-[11px] leading-none font-medium transition opacity-70 hover:opacity-100"
+                        style={{
+                          borderColor: `${item.theme.color}66`,
+                          color: item.theme.color,
+                          backgroundColor: `${item.theme.light}cc`,
+                        }}
+                        title={t('home.shareCard')}
+                        aria-label={t('home.shareCard')}
+                        disabled={sharingSlug === item.paper.slug}
+                        data-share-exclude="true"
+                      >
+                        <span aria-hidden="true">↗</span>
+                        <span>{sharingSlug === item.paper.slug ? '...' : t('home.shareMini')}</span>
+                      </button>
+                      <span
+                        className="inline-flex items-center justify-center px-3 py-2 min-h-[30px] shrink-0 whitespace-nowrap text-[11px] leading-none font-semibold text-white"
+                        style={{ backgroundColor: item.theme.color }}
+                      >
+                        <span style={{ transform: 'translateY(-2px)' }}>{t('home.todayOpen')}</span>
+                      </span>
+                    </div>
                   </div>
 
                   <div className="py-4 border-b border-[#d4c9b5]">
@@ -451,35 +519,22 @@ export default function Home() {
                       {cardSections.length > 0 ? cardSections.map((section) => (
                         <span
                           key={section.slug}
-                          className="px-3 py-1 border text-xs font-medium"
+                          className="inline-flex items-center px-3 py-1 border text-xs leading-none font-medium"
                           style={{ borderColor: item.theme.color, color: item.theme.color }}
                         >
-                          {section.name}
+                          <span style={{ transform: 'translateY(-2px)' }}>{section.name}</span>
                         </span>
                       )) : (
                         <span className="text-sm text-[#9c8b75]">{t('home.sectionsSyncing')}</span>
                       )}
                     </div>
                     <p className="text-sm text-[#5a4d40] leading-6">{getParticipationLabel(item.paper, item.sections, t)}</p>
-                    {item.profile && (
-                      <div className="mt-3 space-y-2 border-t border-[#d4c9b5] pt-3">
-                        <p className="text-xs sm:text-sm text-[#5a4d40]">
-                          <span className="font-mono text-[#9c8b75] mr-2">主打</span>
-                          {item.profile.drives.join(' / ')}
-                        </p>
-                        <p className="text-xs sm:text-sm text-[#5a4d40]">
-                          <span className="font-mono text-[#9c8b75] mr-2">钩子</span>
-                          {item.profile.hook}
-                        </p>
-                        <p className="text-xs sm:text-sm text-[#6b5c4d] leading-6">{item.profile.shareLine}</p>
-                      </div>
-                    )}
                   </div>
 
-                  <div className="mt-3 grid sm:grid-cols-2 gap-3">
+                  <div className="mt-3 grid sm:grid-cols-2 gap-3" data-share-exclude="true">
                     <Link
                       to={`/newspaper/${item.paper.slug}`}
-                      className="inline-flex items-center justify-center px-4 py-3 text-sm font-semibold text-white"
+                      className="inline-flex items-center justify-center px-4 py-3 text-sm leading-none font-semibold text-white"
                       style={{ backgroundColor: item.theme.color }}
                     >
                       {t('home.readToday')}
@@ -488,7 +543,7 @@ export default function Home() {
                       to={primarySection
                         ? `/submit?paper=${item.paper.slug}&section=${primarySection.slug}`
                         : `/submit?paper=${item.paper.slug}`}
-                      className="inline-flex items-center justify-center px-4 py-3 text-sm font-semibold border-2 border-ink-dark bg-paper-white text-ink-dark hover:bg-paper-aged transition-colors"
+                      className="inline-flex items-center justify-center px-4 py-3 text-sm leading-none font-semibold border-2 border-ink-dark bg-paper-white text-ink-dark hover:bg-paper-aged transition-colors"
                     >
                       {t('home.submitToThis')}
                     </Link>

@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import { api, type LiveIssueResponse, type LiveLayoutItem, type LiveLayoutPage, type NewspaperSummary } from '../services/api';
 import { mockRejections } from '../lib/mockRejections';
 import { getAuthUser } from '../lib/auth';
+import { downloadShareCard } from '../lib/shareCard';
 import {
   getNewspaperEnglishName,
   getNewspaperLogoEmoji,
@@ -22,12 +23,17 @@ export default function Newspaper() {
   const [papersLoaded, setPapersLoaded] = useState(false);
 
   const [currentSpread, setCurrentSpread] = useState(0);
+  const [isSinglePageMode, setIsSinglePageMode] = useState(false);
   const [selectedIssueDate, setSelectedIssueDate] = useState('');
   const [autoFlip, setAutoFlip] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [liveIssue, setLiveIssue] = useState<LiveIssueResponse | null>(null);
+  const [controlsHeight, setControlsHeight] = useState(62);
+  const controlsRef = useRef<HTMLDivElement | null>(null);
+  const shareCardRef = useRef<HTMLElement | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
 
   const [rejections, setRejections] = useState<any[]>([]);
 
@@ -115,22 +121,22 @@ export default function Newspaper() {
   }, [slug, selectedIssueDate, t]);
 
   useEffect(() => {
-    if (!autoFlip) return;
-    const timer = window.setInterval(() => {
-      setCurrentSpread((prev) => {
-        if (prev >= totalSpreads - 1) return 0;
-        return prev + 1;
-      });
-    }, 8000);
-    return () => window.clearInterval(timer);
-  }, [autoFlip]);
-
-  useEffect(() => {
     const onFsChange = () => {
       setIsFullscreen(Boolean(document.fullscreenElement));
     };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 800px)');
+    const handleChange = (event: MediaQueryList | MediaQueryListEvent) => {
+      setIsSinglePageMode(event.matches);
+    };
+    handleChange(mediaQuery);
+    const listener = (event: MediaQueryListEvent) => handleChange(event);
+    mediaQuery.addEventListener('change', listener);
+    return () => mediaQuery.removeEventListener('change', listener);
   }, []);
 
   const pages: LiveLayoutPage[] = useMemo(() => {
@@ -143,15 +149,83 @@ export default function Newspaper() {
   const paperEditor = currentPaper?.editor_name || '编辑部';
   const paperTagline = getNewspaperTagline(currentPaper);
   const paperNameEn = getNewspaperEnglishName(slug);
-  const paperRedTitle = getNewspaperTheme(slug).redTitle;
+  const paperTheme = getNewspaperTheme(slug);
+  const paperRedTitle = paperTheme.redTitle;
   const paperLogoEmoji = getNewspaperLogoEmoji(slug);
 
   // ── 对开计算 ──
   const totalSpreads = Math.max(1, Math.ceil(pages.length / 2));
-  const leftPageIndex = currentSpread * 2;
-  const rightPageIndex = currentSpread * 2 + 1;
+  const totalViews = isSinglePageMode ? Math.max(1, pages.length) : totalSpreads;
+  const leftPageIndex = isSinglePageMode ? currentSpread : currentSpread * 2;
+  const rightPageIndex = isSinglePageMode ? currentSpread : currentSpread * 2 + 1;
   const leftPage = pages[leftPageIndex];
-  const rightPage = pages[rightPageIndex]; // 可能 undefined
+  const rightPage = isSinglePageMode ? undefined : pages[rightPageIndex]; // 可能 undefined
+  const shareSections = useMemo(() => {
+    const seen = new Set<string>();
+    const names: string[] = [];
+    for (const page of pages) {
+      const sectionName = (page.section_name || '').trim();
+      if (!sectionName || seen.has(sectionName)) continue;
+      seen.add(sectionName);
+      names.push(sectionName);
+      if (names.length >= 3) break;
+    }
+    return names;
+  }, [pages]);
+  const shareHeadline = useMemo(() => {
+    const seen = new Set<string | number>();
+    const candidates: (LiveLayoutItem & { type: 'article' })[] = [];
+    for (const page of pages) {
+      for (const column of page.columns || []) {
+        for (const item of column.items || []) {
+          if (item.type !== 'article') continue;
+          if (seen.has(item.id)) continue;
+          seen.add(item.id);
+          candidates.push(item as LiveLayoutItem & { type: 'article' });
+        }
+      }
+    }
+    return candidates.find((item) => item.importance === 'headline')
+      || candidates.find((item) => item.importance === 'secondary')
+      || candidates[0]
+      || null;
+  }, [pages]);
+
+  useEffect(() => {
+    setCurrentSpread((prev) => Math.min(prev, Math.max(0, totalViews - 1)));
+  }, [totalViews]);
+
+  useEffect(() => {
+    if (!autoFlip) return;
+    const timer = window.setInterval(() => {
+      setCurrentSpread((prev) => {
+        if (prev >= totalViews - 1) return 0;
+        return prev + 1;
+      });
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [autoFlip, totalViews]);
+
+  useEffect(() => {
+    const controlsElement = controlsRef.current;
+    if (!controlsElement) return;
+
+    const updateControlsHeight = () => {
+      const measured = Math.ceil(controlsElement.getBoundingClientRect().height);
+      setControlsHeight((prev) => (prev === measured ? prev : measured));
+    };
+
+    updateControlsHeight();
+
+    const observer = new ResizeObserver(() => updateControlsHeight());
+    observer.observe(controlsElement);
+    window.addEventListener('resize', updateControlsHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateControlsHeight);
+    };
+  }, []);
 
   if (!slug || (papersLoaded && newspapers.length > 0 && !currentPaper)) {
     return (
@@ -393,8 +467,43 @@ export default function Newspaper() {
     setSelectedIssueDate(next);
   };
 
+  const generateSharePoster = async () => {
+    if (!shareCardRef.current || !slug) return;
+
+    const issueDateForShare = selectedIssueDate || liveIssue?.issue_meta?.issue_date || todayStr;
+    const deepLink = new URL(window.location.href);
+    if (selectedIssueDate) {
+      deepLink.searchParams.set('date', selectedIssueDate);
+    } else {
+      deepLink.searchParams.delete('date');
+    }
+
+    setIsSharing(true);
+    try {
+      await downloadShareCard({
+        element: shareCardRef.current,
+        deepLink: deepLink.toString(),
+        filename: `${slug}-${issueDateForShare}-share.png`,
+        qrCaption: t('newspaper.shareScanHint'),
+        footerTitle: `${paperName} · ${t('newspaper.shareDatePrefix')} ${issueDateForShare}`,
+        footerMeta: 'Silicon Press Bureau',
+      });
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(deepLink.toString()).catch(() => undefined);
+      }
+    } catch {
+      window.alert(t('newspaper.shareFailed'));
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   return (
-    <div className="np-wrapper">
+    <div
+      className="np-wrapper"
+      style={{ '--np-controls-height': `${controlsHeight}px` } as CSSProperties}
+    >
       {loading && (
         <div className="np-loading-overlay">
           <p>{t('newspaper.loading')}</p>
@@ -415,23 +524,22 @@ export default function Newspaper() {
         </div>
       )}
 
-      <div className="np-submit-actions">
-        <Link to="/submit" className="np-submit-action np-submit-action-primary">
-          {t('newspaper.submitArticle')}
-        </Link>
-        <Link to="/submit?intent=ad" className="np-submit-action np-submit-action-ad">
-          {t('newspaper.submitAd')}
-        </Link>
-      </div>
-
       {/* ======== 双页对开主体 ======== */}
       <div className="np-spread">
         {renderPage(leftPage, leftPageIndex)}
-        {renderPage(rightPage, rightPageIndex)}
+        {!isSinglePageMode && renderPage(rightPage, rightPageIndex)}
       </div>
 
       {/* ======== 浮动控制条 ======== */}
-      <div className="np-controls">
+      <div className="np-controls" ref={controlsRef}>
+        <div className="np-ctrl-group np-ctrl-submit-actions">
+          <Link to="/submit" className="np-submit-action np-ctrl-submit-action np-submit-action-primary">
+            {t('newspaper.submitArticle')}
+          </Link>
+          <Link to="/submit?intent=ad" className="np-submit-action np-ctrl-submit-action np-submit-action-ad">
+            {t('newspaper.submitAd')}
+          </Link>
+        </div>
         <Link to="/" className="np-ctrl-back">{t('newspaper.backToBureau')}</Link>
         <div className="np-ctrl-group">
           <span className="np-ctrl-label">第{issueNum}期</span>
@@ -477,15 +585,24 @@ export default function Newspaper() {
             className="np-ctrl-btn"
           >◂</button>
           <span className="np-ctrl-label">
-            {leftPageIndex + 1}-{Math.min(rightPageIndex + 1, pages.length)}版
+            {isSinglePageMode
+              ? `${leftPageIndex + 1}版`
+              : `${leftPageIndex + 1}-${Math.min(rightPageIndex + 1, pages.length)}版`}
           </span>
           <button
-            onClick={() => setCurrentSpread(Math.min(totalSpreads - 1, currentSpread + 1))}
-            disabled={currentSpread >= totalSpreads - 1}
+            onClick={() => setCurrentSpread(Math.min(totalViews - 1, currentSpread + 1))}
+            disabled={currentSpread >= totalViews - 1}
             className="np-ctrl-btn"
           >▸</button>
         </div>
         <div className="np-ctrl-group">
+          <button
+            onClick={generateSharePoster}
+            className="np-ctrl-btn"
+            disabled={isSharing || loading || Boolean(error)}
+          >
+            {isSharing ? t('newspaper.sharing') : t('newspaper.share')}
+          </button>
           <button
             onClick={() => setAutoFlip((v) => !v)}
             className="np-ctrl-btn"
@@ -499,6 +616,57 @@ export default function Newspaper() {
             {isFullscreen ? t('newspaper.exitFullscreen') : t('newspaper.fullscreen')}
           </button>
         </div>
+      </div>
+
+      <div style={{ position: 'fixed', left: '-10000px', top: 0, width: 760, pointerEvents: 'none', zIndex: -1 }}>
+        <article
+          ref={shareCardRef}
+          className="paper-texture border-[3px] p-6 shadow-[10px_10px_0_rgba(26,26,26,0.12)]"
+          style={{
+            backgroundColor: paperTheme.light,
+            borderColor: paperTheme.color,
+            transform: 'none',
+          }}
+        >
+          <div className="flex items-start justify-between gap-4 pb-4 border-b-2" style={{ borderColor: paperTheme.color }}>
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: paperTheme.color }}>
+                {paperLogoEmoji ? (
+                  <span style={{ fontSize: 26, lineHeight: 1, transform: 'translateY(-2px)' }}>{paperLogoEmoji}</span>
+                ) : (
+                  <span className="text-white text-sm leading-none font-bold font-mono" style={{ transform: 'translateY(-2px)' }}>{paperName.slice(0, 1)}</span>
+                )}
+              </div>
+              <div>
+                <div className="text-xs font-mono uppercase tracking-[0.24em] text-[#9c8b75]">{paperNameEn}</div>
+                <h3 className="text-3xl font-bold mt-1" style={{ color: paperTheme.color }}>{paperName}</h3>
+                <p className="text-sm text-[#6b5c4d] mt-1">{t('newspaper.shareDatePrefix')} {selectedIssueDate || liveIssue?.issue_meta?.issue_date || todayStr}</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center justify-center px-3 py-2 min-h-[30px] text-[11px] leading-none font-mono uppercase tracking-[0.2em] text-white" style={{ backgroundColor: paperTheme.color }}>
+              <span style={{ transform: 'translateY(-2px)' }}>{t('home.todayOpen')}</span>
+            </span>
+          </div>
+
+          <div className="py-4 border-b border-[#d4c9b5]">
+            <div className="text-[11px] font-mono uppercase tracking-[0.24em] text-[#9c8b75] mb-2">{t('home.todayFront')}</div>
+            <h4 className="text-2xl font-bold text-ink-dark leading-tight mb-2">{shareHeadline?.title || t('home.headlinePlaceholder')}</h4>
+            <p className="text-base text-[#5a4d40] leading-7">{shareHeadline?.content ? `${shareHeadline.content.slice(0, 130).trim()}...` : t('home.headlineExcerptPlaceholder')}</p>
+            <div className="mt-3 text-sm text-[#6b5c4d]">{shareHeadline ? `${shareHeadline.column} · ${shareHeadline.author}` : t('home.frontPage')}</div>
+          </div>
+
+          <div className="py-4">
+            <div className="text-xs font-mono uppercase tracking-[0.24em] text-[#9c8b75] mb-2">{t('home.todayOpen')}</div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {(shareSections.length ? shareSections : [t('home.frontPage')]).map((sectionName) => (
+                <span key={sectionName} className="inline-flex items-center px-3 py-1 border text-xs leading-none font-medium" style={{ borderColor: paperTheme.color, color: paperTheme.color }}>
+                  <span style={{ transform: 'translateY(-2px)' }}>{sectionName}</span>
+                </span>
+              ))}
+            </div>
+            <p className="text-sm text-[#5a4d40] leading-6">{paperTagline}</p>
+          </div>
+        </article>
       </div>
     </div>
   );
